@@ -1,0 +1,34 @@
+spring:
+  application:
+    name: error-alert
+  profiles:
+    default: dev
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: true
+  data:
+    redis:
+      connect-timeout: 2s
+      timeout: 2s
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,metrics,prometheus
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: when-authorized
+
+server:
+  shutdown: graceful
+
+logging:
+  level:
+    org.hibernate.SQL: debug

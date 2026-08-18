@@ -1,0 +1,25 @@
+spring:
+  config:
+    activate:
+      on-profile: dev
+    import: optional:file:.env[.properties]
+  docker:
+    compose:
+      enabled: ${DOCKER_COMPOSE_ENABLED:true}
+      file: compose.yml
+      lifecycle-management: start-only
+      readiness:
+        timeout: 2m
+  datasource:
+    url: jdbc:mysql://${MYSQL_HOST:localhost}:${MYSQL_PORT:13306}/${MYSQL_DATABASE:error_alert}?serverTimezone=Asia/Seoul&characterEncoding=UTF-8
+    username: ${MYSQL_USER:error_alert}
+    password: ${MYSQL_PASSWORD:replace_with_dev_mysql_password}
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:16379}
+
+management:
+  endpoint:
+    health:
+      show-details: always

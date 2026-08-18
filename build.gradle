@@ -1,0 +1,162 @@
+plugins {
+    id 'java'
+    id 'org.springframework.boot' version '3.3.13'
+    id 'io.spring.dependency-management' version '1.1.7'
+}
+
+group = 'com.wuho'
+version = '0.0.1-SNAPSHOT'
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+configurations {
+    compileOnly {
+        extendsFrom annotationProcessor
+    }
+}
+
+sourceSets {
+    performanceTest {
+        java.srcDir file('src/performanceTest/java')
+        resources.srcDir file('src/performanceTest/resources')
+        compileClasspath += sourceSets.main.output + configurations.testRuntimeClasspath
+        runtimeClasspath += output + compileClasspath
+    }
+}
+
+configurations {
+    performanceTestImplementation.extendsFrom testImplementation
+    performanceTestRuntimeOnly.extendsFrom testRuntimeOnly
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    implementation 'org.springframework.boot:spring-boot-starter-data-redis'
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'io.micrometer:micrometer-registry-prometheus'
+    implementation 'org.flywaydb:flyway-core'
+    implementation 'org.springframework.retry:spring-retry'
+    implementation 'org.springframework:spring-aspects'
+
+    developmentOnly 'org.springframework.boot:spring-boot-docker-compose'
+
+    compileOnly 'org.projectlombok:lombok'
+    annotationProcessor 'org.projectlombok:lombok'
+
+    runtimeOnly 'com.mysql:mysql-connector-j'
+    runtimeOnly 'org.flywaydb:flyway-mysql'
+
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'org.testcontainers:junit-jupiter'
+    testImplementation 'org.testcontainers:mysql'
+    testImplementation 'org.testcontainers:testcontainers'
+    testRuntimeOnly 'com.h2database:h2'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+}
+
+tasks.register('recentLookupPerformanceTest', Test) {
+    description = 'Runs the opt-in MySQL recent-error lookup performance test.'
+    group = LifecycleBasePlugin.VERIFICATION_GROUP
+
+    testClassesDirs = sourceSets.performanceTest.output.classesDirs
+    classpath = sourceSets.performanceTest.runtimeClasspath
+    shouldRunAfter tasks.named('test')
+
+    systemProperty 'recent.lookup.report.dir', layout.buildDirectory.dir('reports/recent-lookup').get().asFile.absolutePath
+
+    useJUnitPlatform()
+}
+
+tasks.register('recentFilterIndexPerformanceTest', Test) {
+    description = 'Runs the opt-in MySQL recent-error filter index performance test.'
+    group = LifecycleBasePlugin.VERIFICATION_GROUP
+
+    testClassesDirs = sourceSets.performanceTest.output.classesDirs
+    classpath = sourceSets.performanceTest.runtimeClasspath
+    shouldRunAfter tasks.named('test')
+
+    systemProperty 'recent.filter.index.report.dir', layout.buildDirectory.dir('reports/recent-filter-index').get().asFile.absolutePath
+
+    useJUnitPlatform()
+    filter {
+        includeTestsMatching 'com.wuho.erroralert.repository.ErrorEventRecentFilterIndexPerformanceTest'
+    }
+}
+
+tasks.register('apiKeyConcurrencyPerformanceTest', Test) {
+    description = 'Runs the opt-in MySQL API-key issuance concurrency test.'
+    group = LifecycleBasePlugin.VERIFICATION_GROUP
+
+    testClassesDirs = sourceSets.performanceTest.output.classesDirs
+    classpath = sourceSets.performanceTest.runtimeClasspath
+    shouldRunAfter tasks.named('test')
+
+    useJUnitPlatform()
+    filter {
+        includeTestsMatching 'com.wuho.erroralert.service.ProjectApiKeyConcurrencyPerformanceTest'
+    }
+}
+
+tasks.register('alertCooldownConcurrencyPerformanceTest', Test) {
+    description = 'Runs the opt-in Redis alert-cooldown concurrency test.'
+    group = LifecycleBasePlugin.VERIFICATION_GROUP
+
+    testClassesDirs = sourceSets.performanceTest.output.classesDirs
+    classpath = sourceSets.performanceTest.runtimeClasspath
+    shouldRunAfter tasks.named('test')
+
+    systemProperty 'alert.cooldown.report.dir', layout.buildDirectory.dir('reports/alert-cooldown').get().asFile.absolutePath
+    systemProperty 'api.version', '1.44'
+
+    useJUnitPlatform()
+    filter {
+        includeTestsMatching 'com.wuho.erroralert.service.AlertCooldownConcurrencyPerformanceTest'
+    }
+}
+
+tasks.register('redisCounterAtomicityPerformanceTest', Test) {
+    description = 'Runs the opt-in Redis counter Lua atomicity test.'
+    group = LifecycleBasePlugin.VERIFICATION_GROUP
+
+    testClassesDirs = sourceSets.performanceTest.output.classesDirs
+    classpath = sourceSets.performanceTest.runtimeClasspath
+    shouldRunAfter tasks.named('test')
+
+    systemProperty 'redis.counter.atomicity.report.dir', layout.buildDirectory.dir('reports/redis-counter-atomicity').get().asFile.absolutePath
+    systemProperty 'api.version', '1.44'
+
+    useJUnitPlatform()
+    filter {
+        includeTestsMatching 'com.wuho.erroralert.service.RedisCounterLuaAtomicityPerformanceTest'
+    }
+}
+
+tasks.register('errorRateCounterStrategyPerformanceTest', Test) {
+    description = 'Runs the opt-in error-rate counter strategy performance test.'
+    group = LifecycleBasePlugin.VERIFICATION_GROUP
+
+    testClassesDirs = sourceSets.performanceTest.output.classesDirs
+    classpath = sourceSets.performanceTest.runtimeClasspath
+    shouldRunAfter tasks.named('test')
+
+    systemProperty 'counter.strategy.report.dir', layout.buildDirectory.dir('reports/error-rate-counter-strategy').get().asFile.absolutePath
+
+    useJUnitPlatform()
+    filter {
+        includeTestsMatching 'com.wuho.erroralert.service.ErrorRateCounterStrategyPerformanceTest'
+    }
+}
